@@ -1,0 +1,15 @@
+[project]
+name = "fmu-insight"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyside6>=6.9.0",
+    "tomlkit>=0.13.2",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.13.0",
+]
