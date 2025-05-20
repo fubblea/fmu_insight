@@ -11,7 +11,7 @@ def main() -> None:
     app = QApplication(sys.argv)
     window = MainWindow()
 
-    window.setMinimumSize(600, 300)
+    window.setMinimumSize(800, 500)
     window.show()
 
     sys.exit(app.exec())
