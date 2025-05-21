@@ -24,12 +24,18 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # -- install the exact Python we just read (fallback to 3.12)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.meta.outputs.python_version || '3.12' }}
+          cache: pip
+
       # -- read version + required-Python from pyproject.toml
       - name: Extract project metadata
         id: meta
         shell: bash
         run: |
-          pip install tomllib
           python - <<'PY'
           import os, re, tomllib, pathlib
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
@@ -40,13 +46,6 @@ jobs:
               print(f"version={version}", file=out)
               print(f"python_version={(py_ver.group(1) if py_ver else '')}", file=out)
           PY
-
-      # -- install the exact Python we just read (fallback to 3.11)
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ steps.meta.outputs.python_version || '3.11' }}
-          cache: pip
 
       # -- install & cache uv (v6.x is current) and run tests
       - name: Install uv
