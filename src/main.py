@@ -1,19 +1,17 @@
 import sys
 
-from PySide6.QtWidgets import (
-    QApplication,
-)
+from PySide6 import QtWidgets
 
-from app.main_window import MainWindow
+from app.main_window import AppState, MainWindow
 
 
 def main() -> None:
-    app = QApplication(sys.argv)
-    window = MainWindow()
+    app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationName("FMU Insight")
 
-    window.setMinimumSize(800, 500)
+    state = AppState()
+    window = MainWindow(state)
     window.show()
-
     sys.exit(app.exec())
 
 

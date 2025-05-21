@@ -11,9 +11,35 @@ permissions:
   contents: write
 
 jobs:
-  # ──────────────────────────────────────────────────────────────
-  # 1) Run the test suite
-  # ──────────────────────────────────────────────────────────────
+  check-version-bump:
+    runs-on: windows-latest
+
+    steps:
+      - name: Ensure version is newer than latest GitHub Release
+        id: version_guard
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newVersion = '${{ steps.meta.outputs.version }}';
+            // Fetch the latest release (returns [] if none)
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              per_page: 1
+            });
+            const latest = releases.length ? releases[0].tag_name.replace(/^v/, '') : '';
+            core.info(`Version in pyproject.toml:  ${newVersion}`);
+            core.info(`Latest GitHub release tag:  ${latest || 'none'}`);
+
+            if (newVersion === latest) {
+              core.setFailed(
+                `Version ${newVersion} has already been released.\n` +
+                'Bump the version in pyproject.toml before merging.'
+              );
+            } else {
+              core.info('✅ Version is newer – continuing.');
+            }
+
   test:
     runs-on: windows-latest
 
@@ -56,11 +82,8 @@ jobs:
           uv venv --seed
           uv run pytest -vv
 
-  # ──────────────────────────────────────────────────────────────
-  # 2) Build the Windows executable (only after tests pass)
-  # ──────────────────────────────────────────────────────────────
   build:
-    needs: test
+    needs: [test, check-version-bump]
     runs-on: windows-latest
 
     steps:
@@ -87,9 +110,6 @@ jobs:
           path: dist/*.exe
           if-no-files-found: error
 
-  # ──────────────────────────────────────────────────────────────
-  # 3) Create or skip a GitHub Release depending on version bump
-  # ──────────────────────────────────────────────────────────────
   release:
     if: github.event_name == 'push'
     needs: [test, build]
