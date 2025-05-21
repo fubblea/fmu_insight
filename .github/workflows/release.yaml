@@ -1,0 +1,128 @@
+name: Test → Build → Release (Windows / uv)
+
+on:
+  push:
+    branches: [main]
+
+# The release job needs this in order to create a GitHub Release
+permissions:
+  contents: write
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # 1) Run the test suite
+  # ──────────────────────────────────────────────────────────────
+  test:
+    runs-on: windows-latest
+
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      python_version: ${{ steps.meta.outputs.python_version }}
+
+    steps:
+      # -- source code
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # -- read version + required-Python from pyproject.toml
+      - name: Extract project metadata
+        id: meta
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, re, tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          version = data.get("project", {}).get("version", "")
+          req_py  = data.get("project", {}).get("requires-python", "")
+          py_ver  = re.search(r"(\d+\.\d+)", req_py or "")   # first concrete major.minor
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              print(f"version={version}", file=out)
+              print(f"python_version={(py_ver.group(1) if py_ver else '')}", file=out)
+          PY
+
+      # -- install the exact Python we just read (fallback to 3.11)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.meta.outputs.python_version || '3.11' }}
+          cache: pip
+
+      # -- install & cache uv (v6.x is current) and run tests
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6 # v6.0.1 is the latest as of Apr 29 2025 :contentReference[oaicite:0]{index=0}
+      - name: Run pytest
+        run: uv run pytest -vv
+
+  # ──────────────────────────────────────────────────────────────
+  # 2) Build the Windows executable (only after tests pass)
+  # ──────────────────────────────────────────────────────────────
+  build:
+    needs: test
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ needs.test.outputs.python_version || '3.11' }}
+          cache: pip
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6 # cached automatically :contentReference[oaicite:1]{index=1}
+
+      - name: Build executable
+        run: uv run build.py
+
+      # Pass the built .exe(s) to the next job
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: dist/*.exe
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────────────────────
+  # 3) Create or skip a GitHub Release depending on version bump
+  # ──────────────────────────────────────────────────────────────
+  release:
+    needs: [test, build]
+    runs-on: windows-latest # (Ubuntu would work too; kept Windows for consistency)
+
+    steps:
+      # Download the compiled binaries
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-dist
+          path: dist
+
+      # Compare current version vs latest GitHub release tag
+      - name: Determine if version changed
+        id: needs_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newVersion = '${{ needs.test.outputs.version }}';
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              per_page: 1
+            });
+            const latestTag = releases.length ? releases[0].tag_name.replace(/^v/, '') : '';
+            core.info(`Detected version in pyproject.toml: ${newVersion}`);
+            core.info(`Most-recent GitHub release:       ${latestTag || 'none'}`);
+            core.setOutput('update', newVersion !== latestTag);
+
+      # Publish only when the version string is new
+      - name: Publish new release
+        if: steps.needs_release.outputs.update == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.test.outputs.version }}
+          name: v${{ needs.test.outputs.version }}
+          generate_release_notes: true
+          files: dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
