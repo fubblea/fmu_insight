@@ -51,7 +51,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6 # v6.0.1 is the latest as of Apr 29 2025 :contentReference[oaicite:0]{index=0}
       - name: Run pytest
-        run: uv run pytest -vv
+        run: |
+          uv venv --seed
+          uv run pytest -vv
 
   # ──────────────────────────────────────────────────────────────
   # 2) Build the Windows executable (only after tests pass)
@@ -66,14 +68,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ needs.test.outputs.python_version || '3.11' }}
+          python-version: ${{ needs.test.outputs.python_version || '3.12' }}
           cache: pip
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6 # cached automatically :contentReference[oaicite:1]{index=1}
 
       - name: Build executable
-        run: uv run build.py
+        run: |
+          uv venv --seed
+          uv run build.py
 
       # Pass the built .exe(s) to the next job
       - name: Upload dist artifacts
