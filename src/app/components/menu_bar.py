@@ -19,7 +19,7 @@ class MenuBar(QMenuBar):
         file_menu = self.addMenu("&File")
 
         load_fmu_action = QAction("Load FMU…", self)
-        load_fmu_action.setShortcut("Ctrl+O")
+        load_fmu_action.setShortcut("Ctrl+L")
         load_fmu_action.triggered.connect(self._on_load_fmu)
         file_menu.addAction(load_fmu_action)
 
