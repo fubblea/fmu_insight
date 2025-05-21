@@ -4,6 +4,8 @@ from PySide6.QtCore import Qt
 from app.schemas.fmu import FmuInput, FmuOutput, FmuParameter
 from app.state import AppState
 
+DESCRIPTION_PLACEHOLDER = "Select a property to view more details"
+
 
 class ModelExplorer(QtWidgets.QWidget):
     def __init__(self, state: AppState, parent: QtWidgets.QWidget | None = None):
@@ -19,7 +21,7 @@ class ModelExplorer(QtWidgets.QWidget):
         self.tree_view.setHeaderHidden(True)
 
         self.description = QtWidgets.QLabel()
-        self.description.setText("Select a property to view more details")
+        self.description.setText(DESCRIPTION_PLACEHOLDER)
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.addWidget(self.search_box)
@@ -29,6 +31,7 @@ class ModelExplorer(QtWidgets.QWidget):
 
         # Signal Wiring
         self.tree_view.itemSelectionChanged.connect(self._on_selection_changed)
+        self.search_box.textChanged.connect(self._filter_tree)
 
     # Callbacks
 
@@ -38,6 +41,24 @@ class ModelExplorer(QtWidgets.QWidget):
             items[0].data(0, Qt.ItemDataRole.UserRole) if items else None
         )
         self.update_description(v)
+
+    def _filter_tree(self, text: str):
+        text = text.lower().strip()
+
+        for i in range(self.tree_view.topLevelItemCount()):
+            category = self.tree_view.topLevelItem(i)
+            if category is None:
+                continue
+
+            any_child_visible = False
+
+            for j in range(category.childCount()):
+                child = category.child(j)
+                match = text in child.text(0).lower() if text else True
+                child.setHidden(not match)
+                any_child_visible |= match
+
+            category.setHidden(not any_child_visible)
 
     # Public Helpers
 
@@ -68,3 +89,5 @@ Unit = {v.unit}
 Type = {v.type}
 Default = {v._raw.start}
             """)
+        else:
+            self.description.setText(DESCRIPTION_PLACEHOLDER)
