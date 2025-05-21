@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from fmpy import read_model_description
 from fmpy.util import fmu_info, get_start_values
 
 
@@ -23,14 +24,18 @@ class AppState:
 
     def load_fmu(self, fmu_path: Path, return_info: bool = False) -> str | None:
         self.fmu_path = fmu_path
-        start_values = get_start_values(fmu_path)
 
-        key: str
-        value: str
-        for key, value in start_values.items():
-            if not key.__contains__("outputAlias"):
-                new_item = Property(name=key, value=float(value))
-                self.output_available.append(new_item)
+        # Get variables
+        start_values = get_start_values(str(fmu_path))
+        model_vars = read_model_description(str(fmu_path))
+
+        for v in model_vars.modelVariables:
+            if v.causality == "output":
+                self.output_available.append(Property(name=v.name, value=0))
+            elif v.causality == "parameter":
+                self.param_available.append(
+                    Property(name=v.name, value=start_values[v.name])
+                )
 
         if return_info:
             return fmu_info(str(fmu_path), ["input", "output", "parameter"])
