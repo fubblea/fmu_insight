@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from PySide6 import QtCore, QtGui, QtWidgets
-
-# ────────────────────────────────────────────────────────────────────────────────
-#  App‑wide state
-# ────────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -18,6 +14,7 @@ class AppState:
     fmu_path: Optional[Path] = None
     parameters: Dict[str, Any] = field(default_factory=dict)  # name → value / range
     inputs: Dict[str, Any] = field(default_factory=dict)  # name → signal data
+    metrics: List[MetricSpec] = field(default_factory=list)
     doe_settings: Dict[str, Any] = field(default_factory=dict)  # method, N, seed, …
     results: Optional[Any] = None  # placeholder for results DataFrame / ndarray
 
@@ -79,6 +76,64 @@ class ResultsView(QtWidgets.QWidget):
         self.placeholder = QtWidgets.QLabel("Results plots – appear after run")
         self.placeholder.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.placeholder)
+
+
+@dataclass
+class MetricSpec:
+    """Specification of a result metric / constraint."""
+
+    signal: str  # name of the output / expression
+    statistic: str = "max"  # max, min, mean, …
+    lower: Optional[float] = None
+    upper: Optional[float] = None
+    objective: Optional[str] = None  # optimise? minimise / maximise
+
+
+class MetricsSetup(QtWidgets.QWidget):
+    """Select inputs/outputs of interest and define metrics / constraints."""
+
+    def __init__(self, state: AppState, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self._state = state
+
+        main = QtWidgets.QHBoxLayout(self)
+
+        # Left – available signals list -------------------------------------------------
+        left_box = QtWidgets.QGroupBox("Available outputs / signals")
+        left_layout = QtWidgets.QVBoxLayout(left_box)
+        self.signal_list = QtWidgets.QListWidget()
+        left_layout.addWidget(self.signal_list)
+        # TODO: populate this list from FMU after load
+
+        # Right – metric table ----------------------------------------------------------
+        right_box = QtWidgets.QGroupBox("Metrics & constraints")
+        right_layout = QtWidgets.QVBoxLayout(right_box)
+
+        self.metric_table = QtWidgets.QTableWidget(0, 5)
+        self.metric_table.setHorizontalHeaderLabels(
+            [
+                "Signal",
+                "Statistic",
+                "Lower bound",
+                "Upper bound",
+                "Objective",
+            ]
+        )
+        self.metric_table.verticalHeader().setVisible(False)
+        self.metric_table.horizontalHeader().setStretchLastSection(True)
+        right_layout.addWidget(self.metric_table)
+
+        btn_row = QtWidgets.QHBoxLayout()
+        self.btn_add = QtWidgets.QPushButton("Add ⧉ from selection")
+        self.btn_remove = QtWidgets.QPushButton("Remove selected")
+        btn_row.addWidget(self.btn_add)
+        btn_row.addWidget(self.btn_remove)
+        btn_row.addStretch(1)
+        right_layout.addLayout(btn_row)
+        # TODO: wire buttons to modify self.metric_table & self._state.metrics
+
+        main.addWidget(left_box, 2)
+        main.addWidget(right_box, 3)
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -202,11 +257,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.param_tab = ParameterTable(self.state)
         self.input_tab = InputSignals(self.state)
+        self.metrics_tab = MetricsSetup(self.state)
         self.doe_tab = DOESetup(self.state)
         self.results_tab = ResultsView(self.state)
 
         tabs.addTab(self.param_tab, "Parameter Table")
         tabs.addTab(self.input_tab, "Input Signals")
+        tabs.addTab(self.metrics_tab, "Metrics Setup")
         tabs.addTab(self.doe_tab, "DOE Setup")
         tabs.addTab(self.results_tab, "Results")
 
