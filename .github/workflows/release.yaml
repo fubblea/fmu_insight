@@ -3,6 +3,8 @@ name: Test → Build → Release (Windows / uv)
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
 
 # The release job needs this in order to create a GitHub Release
 permissions:
@@ -89,6 +91,7 @@ jobs:
   # 3) Create or skip a GitHub Release depending on version bump
   # ──────────────────────────────────────────────────────────────
   release:
+    if: github.event_name == 'push'
     needs: [test, build]
     runs-on: windows-latest # (Ubuntu would work too; kept Windows for consistency)
 
