@@ -18,16 +18,21 @@ class MainWindow(QMainWindow):
         self.prop_editor = PropEditor(state=self.app_state)
 
         # Create property tree
-        self.prop_tree = PropTree(state=self.app_state)
+        self.prop_tree = PropTree(
+            state=self.app_state,
+        )
 
-        splitter = QSplitter()
-        splitter.addWidget(self.prop_tree)
-        splitter.addWidget(self.prop_editor)
-        splitter.setStretchFactor(1, 1)  # give property panel more flex
+        main_splitter = QSplitter()
+        main_splitter.addWidget(self.prop_tree)
+        main_splitter.addWidget(self.prop_editor)
+        main_splitter.setStretchFactor(1, 1)  # give property panel more flex
 
         # Menu bar
-        menu_bar = MenuBar(state=self.app_state)
+        menu_bar = MenuBar(state=self.app_state, parent=self)
         self.setMenuBar(menu_bar)
 
         # Set main widget
-        self.setCentralWidget(splitter)
+        self.setCentralWidget(main_splitter)
+
+        # Signal wiring
+        menu_bar.request_tree_rebuild.connect(self.prop_tree.recreate_tree)

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QFileDialog, QMenuBar
 
@@ -7,13 +8,14 @@ from app.state import AppState
 
 
 class MenuBar(QMenuBar):
+    request_tree_rebuild = Signal()
+
     def __init__(self, state: AppState, parent=None):
         super().__init__(parent)
         self.state = state  # keep a reference
 
         self.setFixedHeight(32)
 
-        # ─── File menu ─────────────────────────────────────────────────────────
         file_menu = self.addMenu("&File")
 
         load_fmu_action = QAction("Load FMU…", self)
@@ -32,3 +34,4 @@ class MenuBar(QMenuBar):
         )
         if file_path:
             self.state.load_fmu(Path(file_path))
+            self.request_tree_rebuild.emit()
