@@ -14,7 +14,30 @@ jobs:
   check-version-bump:
     runs-on: windows-latest
 
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+
     steps:
+      # -- source code
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # -- read version + required-Python from pyproject.toml
+      - name: Extract project metadata
+        id: meta
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, re, tomllib, pathlib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          version = data.get("project", {}).get("version", "")
+          req_py  = data.get("project", {}).get("requires-python", "")
+          py_ver  = re.search(r"(\d+\.\d+)", req_py or "")   # first concrete major.minor
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              print(f"version={version}", file=out)
+              print(f"python_version={(py_ver.group(1) if py_ver else '')}", file=out)
+          PY
+
       - name: Ensure version is newer than latest GitHub Release
         id: version_guard
         uses: actions/github-script@v7
