@@ -21,17 +21,26 @@ class ModelExplorer(QtWidgets.QWidget):
         self.tree_view.setHeaderHidden(True)
 
         self.description = QtWidgets.QLabel(DESCRIPTION_PLACEHOLDER, self)
+        self.description.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
 
         self.desc_scroll = QtWidgets.QScrollArea(self)
-        self.desc_scroll.setMaximumHeight(100)
+        self.desc_scroll.setMinimumHeight(50)
         self.desc_scroll.setWidgetResizable(True)
         self.desc_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.desc_scroll.setWidget(self.description)
 
+        self._splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical, self)
+        self._splitter.addWidget(self.tree_view)
+        self._splitter.addWidget(self.desc_scroll)
+        self._splitter.setStretchFactor(0, 3)
+        self._splitter.setChildrenCollapsible(False)
+
         self._layout = QtWidgets.QVBoxLayout()
+        self._layout.setContentsMargins(5, 0, 5, 0)
         self._layout.addWidget(self.search_box)
-        self._layout.addWidget(self.tree_view)
-        self._layout.addWidget(self.desc_scroll)
+        self._layout.addWidget(self._splitter)
         self.setLayout(self._layout)
 
         # Signal Wiring
