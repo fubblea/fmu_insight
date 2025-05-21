@@ -1,4 +1,4 @@
-from __future__ import annotations
+from pathlib import Path
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -6,7 +6,7 @@ from app.components.doe_setup import DOESetup
 from app.components.input_editor import InputEditor
 from app.components.metrics_setup import MetricsSetup
 from app.components.model_explorer import ModelExplorer
-from app.components.prop_editor import PropertyEditor
+from app.components.param_editor import ParamEditor
 from app.components.result_view import ResultsView
 from app.state import AppState
 
@@ -80,13 +80,13 @@ class MainWindow(QtWidgets.QMainWindow):
         tabs.setMinimumWidth(500)
         self.setCentralWidget(tabs)
 
-        self.prop_editor = PropertyEditor(self.state)
+        self.param_editor = ParamEditor(self.state)
         self.input_tab = InputEditor(self.state)
         self.metrics_tab = MetricsSetup(self.state)
         self.doe_tab = DOESetup(self.state)
         self.results_tab = ResultsView(self.state)
 
-        tabs.addTab(self.prop_editor, "Property Editor")
+        tabs.addTab(self.param_editor, "Parameter Editor")
         tabs.addTab(self.input_tab, "Input Signals")
         tabs.addTab(self.metrics_tab, "Metrics Setup")
         tabs.addTab(self.doe_tab, "DOE Setup")
@@ -103,20 +103,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.progress)
         self.statusBar().showMessage("Ready", timeout=10000)
 
-    # ─────────────────────────────────────────────── Slots / placeholders ──
+    # ────────────────────────────────────────────────────────── Callbacks ──
 
     def load_fmu(self) -> None:
-        """Open & parse an FMU (placeholder)."""
-        # TODO: implement open‑file dialog + state update
-        self.log("Load FMU - not implemented yet")
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            caption="Select FMU file",
+            dir="",
+            filter="FMU files (*.fmu)",
+        )
+
+        if file_path:
+            info = self.state.load_fmu(Path(file_path), return_info=True)
+            assert info is not None, "Could not load FMU"
+            self.log("Loaded FMU:")
+            self.log(info)
 
     def run_study(self) -> None:
-        """Kick off the DOE run (placeholder)."""
         # TODO: spawn worker processes, update progress, enable results tab
         self.log("Run Study - not implemented yet")
 
     def stop_study(self) -> None:
-        """Abort a running study (placeholder)."""
+        # TODO: Stop
         self.log("Stop Study - not implemented yet")
 
     # ─────────────────────────────────────────────────────────── Helpers ──
