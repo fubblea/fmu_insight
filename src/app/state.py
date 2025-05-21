@@ -4,20 +4,32 @@ from fmpy import read_model_description
 from fmpy.util import fmu_info, get_start_values
 
 
-class Property:
-    def __init__(self, name: str, value: float) -> None:
+class FmuProperty:
+    def __init__(
+        self,
+        name: str,
+        unit: str,
+        type: str,
+        description: str | None = None,
+        value: float | None = None,
+    ) -> None:
         self.name = name
+        self.unit = unit
+        self.type = type
+        self.description = description
         self.value = value
 
 
 class AppState:
     fmu_path = Path()
 
-    param_inclusions: list[Property] = []
-    output_inclusions: list[Property] = []
+    param_inclusions: list[FmuProperty] = []
+    output_inclusions: list[FmuProperty] = []
 
-    param_available: list[Property] = []
-    output_available: list[Property] = []
+    param_available: list[FmuProperty] = []
+    output_available: list[FmuProperty] = []
+
+    current_prop_edit: FmuProperty | None = None
 
     def __init__(self, parent=None) -> None:
         self.parent = parent
@@ -31,10 +43,17 @@ class AppState:
 
         for v in model_vars.modelVariables:
             if v.causality == "output":
-                self.output_available.append(Property(name=v.name, value=0))
+                self.output_available.append(
+                    FmuProperty(name=v.name, unit=v.unit, type=v.type)
+                )
             elif v.causality == "parameter":
                 self.param_available.append(
-                    Property(name=v.name, value=start_values[v.name])
+                    FmuProperty(
+                        name=v.name,
+                        unit=v.unit,
+                        type=v.type,
+                        value=start_values[v.name],
+                    )
                 )
 
         if return_info:
