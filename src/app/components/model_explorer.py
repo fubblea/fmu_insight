@@ -1,7 +1,10 @@
-from PySide6 import QtWidgets
-from PySide6.QtCore import Qt
+from functools import partial
+
+from PySide6 import QtGui, QtWidgets
+from PySide6.QtCore import QPoint, Qt
 
 from app.schemas.fmu import FmuInput, FmuOutput, FmuParameter
+from app.schemas.metrics_spec import MetricSpec
 from app.state import AppState
 
 DESCRIPTION_PLACEHOLDER = "Select a property to view more details"
@@ -19,6 +22,10 @@ class ModelExplorer(QtWidgets.QWidget):
 
         self.tree_view = QtWidgets.QTreeWidget()
         self.tree_view.setHeaderHidden(True)
+        self.tree_view.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.ContiguousSelection
+        )
+        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         self.description = QtWidgets.QLabel(DESCRIPTION_PLACEHOLDER, self)
         self.description.setAlignment(
@@ -45,9 +52,73 @@ class ModelExplorer(QtWidgets.QWidget):
 
         # Signal Wiring
         self.tree_view.itemSelectionChanged.connect(self._on_selection_changed)
+        self.tree_view.customContextMenuRequested.connect(self._show_context_menu)
         self.search_box.textChanged.connect(self._filter_tree)
 
     # Callbacks
+
+    def _show_context_menu(self, pos: QPoint) -> None:
+        selected = self.tree_view.selectedItems()
+        if not selected:
+            return
+
+        menu = QtWidgets.QMenu(self)
+
+        menu.addAction("Add to Study", partial(self._change_selected, add=True))
+        menu.addAction("Remove from Study", partial(self._change_selected, add=False))
+
+        # Show the menu under the cursor
+        global_pos = self.tree_view.viewport().mapToGlobal(pos)
+        menu.exec(global_pos)
+
+    def _change_selected(self, *, add: bool) -> None:
+        for item in self.tree_view.selectedItems():
+            obj = item.data(0, Qt.ItemDataRole.UserRole)
+            if obj is None:
+                continue
+
+            if isinstance(obj, FmuParameter):
+                if add:
+                    self._state.parameters.setdefault(obj.name, obj)
+                else:
+                    self._state.parameters.pop(obj.name, None)
+
+            elif isinstance(obj, FmuInput):
+                if add:
+                    self._state.inputs.setdefault(obj.name, obj)
+                else:
+                    self._state.inputs.pop(obj.name, None)
+
+            elif isinstance(obj, FmuOutput):
+                if add:
+                    if all(m.signal.name != obj.name for m in self._state.metrics):
+                        self._state.metrics.append(
+                            MetricSpec(
+                                signal=obj, statistic="max", lower=None, upper=None
+                            )
+                        )
+                else:
+                    self._state.metrics[:] = [
+                        m for m in self._state.metrics if m.signal.name != obj.name
+                    ]
+
+            self._apply_icon(item, obj)
+
+    def _apply_icon(self, item: QtWidgets.QTreeWidgetItem, obj) -> None:
+        selected = (
+            isinstance(obj, FmuParameter)
+            and obj.name in self._state.parameters
+            or isinstance(obj, FmuInput)
+            and obj.name in self._state.inputs
+            or isinstance(obj, FmuOutput)
+            and any(m.signal.name == obj.name for m in self._state.metrics)
+        )
+        item.setIcon(
+            0,
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.EditFind)
+            if selected
+            else QtGui.QIcon(),
+        )
 
     def _on_selection_changed(self):
         items = self.tree_view.selectedItems()
@@ -79,20 +150,34 @@ class ModelExplorer(QtWidgets.QWidget):
     def rebuild_tree(self):
         self.tree_view.clear()
 
-        param_root = QtWidgets.QTreeWidgetItem(self.tree_view, ["Parameters"])
-        input_root = QtWidgets.QTreeWidgetItem(self.tree_view, ["Inputs"])
-        output_root = QtWidgets.QTreeWidgetItem(self.tree_view, ["Outputs"])
+        def _create_root(title: str) -> QtWidgets.QTreeWidgetItem:
+            item = QtWidgets.QTreeWidgetItem(self.tree_view, [title])
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+            return item
+
+        param_root = _create_root("Parameters")
+        input_root = _create_root("Inputs")
+        output_root = _create_root("Outputs")
+
+        def _create_child(
+            root: QtWidgets.QTreeWidgetItem,
+            name: str,
+            var: FmuParameter | FmuInput | FmuOutput,
+        ) -> QtWidgets.QTreeWidgetItem:
+            item = QtWidgets.QTreeWidgetItem(root, [name])
+            item.setData(0, Qt.ItemDataRole.UserRole, var)
+            self._apply_icon(item, var)
+            return item
 
         for name, var in self._state.fmu_variables.items():
             if isinstance(var, FmuParameter):
-                item = QtWidgets.QTreeWidgetItem(param_root, [name])
-                item.setData(0, Qt.ItemDataRole.UserRole, var)
+                _item = _create_child(param_root, name, var)
             elif isinstance(var, FmuInput):
-                item = QtWidgets.QTreeWidgetItem(input_root, [name])
-                item.setData(0, Qt.ItemDataRole.UserRole, var)
+                _item = _create_child(input_root, name, var)
             elif isinstance(var, FmuOutput):
-                item = QtWidgets.QTreeWidgetItem(output_root, [name])
-                item.setData(0, Qt.ItemDataRole.UserRole, var)
+                _item = _create_child(output_root, name, var)
+            else:
+                continue
 
     def update_description(self, v: FmuParameter | FmuInput | FmuOutput | None):
         if v is not None:

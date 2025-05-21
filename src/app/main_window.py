@@ -42,7 +42,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _build_toolbar(self) -> None:
         tbar = self.addToolBar("Toolbar")
+
         tbar.setMovable(False)
+        tbar.setFloatable(False)
+        tbar.toggleViewAction().setVisible(False)
 
         act_open = QtGui.QAction(QtGui.QIcon.fromTheme("document-open"), "Open", self)
         act_open.triggered.connect(self.load_fmu)
@@ -87,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.doe_tab = DOESetup(self.state)
         self.results_tab = ResultsView(self.state)
 
-        tabs.addTab(self.param_editor, "Parameter Editor")
+        tabs.addTab(self.param_editor, "Parameter Setup")
         tabs.addTab(self.input_tab, "Input Signals")
         tabs.addTab(self.metrics_tab, "Metrics Setup")
         tabs.addTab(self.doe_tab, "DOE Setup")
