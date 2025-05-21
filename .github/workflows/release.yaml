@@ -2,7 +2,7 @@ name: Test → Build → Release (Windows / uv)
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 # The release job needs this in order to create a GitHub Release
 permissions:
