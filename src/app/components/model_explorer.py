@@ -20,13 +20,18 @@ class ModelExplorer(QtWidgets.QWidget):
         self.tree_view = QtWidgets.QTreeWidget()
         self.tree_view.setHeaderHidden(True)
 
-        self.description = QtWidgets.QLabel()
-        self.description.setText(DESCRIPTION_PLACEHOLDER)
+        self.description = QtWidgets.QLabel(DESCRIPTION_PLACEHOLDER, self)
+
+        self.desc_scroll = QtWidgets.QScrollArea(self)
+        self.desc_scroll.setMaximumHeight(100)
+        self.desc_scroll.setWidgetResizable(True)
+        self.desc_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.desc_scroll.setWidget(self.description)
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.addWidget(self.search_box)
         self._layout.addWidget(self.tree_view)
-        self._layout.addWidget(self.description)
+        self._layout.addWidget(self.desc_scroll)
         self.setLayout(self._layout)
 
         # Signal Wiring
@@ -85,8 +90,8 @@ class ModelExplorer(QtWidgets.QWidget):
             self.description.setText(f"""
 Name = {v.name}
 Description = {v._raw.description}
-Unit = {v.unit}
-Type = {v.type}
+Unit = {v._raw.unit}
+Type = {v._raw.type}
 Default = {v._raw.start}
             """)
         else:

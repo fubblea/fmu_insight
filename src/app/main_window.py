@@ -41,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # ─────────────────────────────────────────────────────────────── Toolbar ──
 
     def _build_toolbar(self) -> None:
-        tbar = self.addToolBar("Main")
+        tbar = self.addToolBar("Toolbar")
         tbar.setMovable(False)
 
         act_open = QtGui.QAction(QtGui.QIcon.fromTheme("document-open"), "Open", self)
@@ -72,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         log_dock = QtWidgets.QDockWidget("Log", self)
         log_dock.setWidget(self.log_edit)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.BottomDockWidgetArea, log_dock)
+        log_dock.hide()
 
     # ───────────────────────────────────────────────────────────── Central ──
 

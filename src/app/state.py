@@ -18,8 +18,8 @@ class AppState:
         default_factory=dict
     )
 
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    inputs: Dict[str, Any] = field(default_factory=dict)
+    parameters: Dict[str, FmuParameter] = field(default_factory=dict)
+    inputs: Dict[str, FmuInput] = field(default_factory=dict)
     metrics: List[MetricSpec] = field(default_factory=list)
     doe_settings: Dict[str, Any] = field(default_factory=dict)
 
