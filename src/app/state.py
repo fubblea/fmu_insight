@@ -11,8 +11,6 @@ from app.schemas.metrics_spec import MetricSpec
 
 @dataclass
 class AppState:
-    """Single source of truth for the application state."""
-
     fmu_path: Optional[Path] = None
     fmu_variables: Dict[str, FmuParameter | FmuInput | FmuOutput] = field(
         default_factory=dict

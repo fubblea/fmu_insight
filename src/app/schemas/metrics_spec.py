@@ -8,8 +8,6 @@ from app.schemas.fmu import FmuOutput
 
 @dataclass
 class MetricSpec:
-    """Specification of a result metric / constraint."""
-
     signal: FmuOutput
     statistic: str = "max"
     lower: Optional[float] = None

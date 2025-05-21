@@ -6,8 +6,6 @@ from app.state import AppState
 
 
 class MetricsSetup(QtWidgets.QWidget):
-    """Select inputs/outputs of interest and define metrics / constraints."""
-
     def __init__(self, state: AppState, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self._state = state
