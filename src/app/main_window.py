@@ -5,7 +5,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from app.components.doe_setup import DOESetup
 from app.components.input_editor import InputEditor
 from app.components.metrics_setup import MetricsSetup
-from app.components.param_table import ParameterTable
+from app.components.model_explorer import ModelExplorer
 from app.components.prop_editor import PropertyEditor
 from app.components.result_view import ResultsView
 from app.state import AppState
@@ -15,8 +15,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, state: AppState):
         super().__init__()
         self.state = state
-        self.setWindowTitle("FMU Study")
-        self.resize(1200, 800)
+        self.setWindowTitle("FMU Insight")
+        self.setMinimumSize(1200, 800)
 
         self._build_menu()
         self._build_toolbar()
@@ -61,17 +61,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _build_docks(self) -> None:
         # Model explorer dock (left)
-        self.model_explorer = QtWidgets.QTreeView()
-        self.model_explorer.setHeaderHidden(True)
+        self.model_explorer = ModelExplorer(self.state)
         explorer_dock = QtWidgets.QDockWidget("Model Explorer", self)
         explorer_dock.setWidget(self.model_explorer)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, explorer_dock)
-
-        # Property editor dock (right)
-        prop_widget = PropertyEditor(self.state)
-        prop_dock = QtWidgets.QDockWidget("Properties", self)
-        prop_dock.setWidget(prop_widget)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.RightDockWidgetArea, prop_dock)
 
         # Log dock (bottom)
         self.log_edit = QtWidgets.QTextEdit()
@@ -84,15 +77,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _build_central_tabs(self) -> None:
         tabs = QtWidgets.QTabWidget()
+        tabs.setMinimumWidth(500)
         self.setCentralWidget(tabs)
 
-        self.param_tab = ParameterTable(self.state)
+        self.prop_editor = PropertyEditor(self.state)
         self.input_tab = InputEditor(self.state)
         self.metrics_tab = MetricsSetup(self.state)
         self.doe_tab = DOESetup(self.state)
         self.results_tab = ResultsView(self.state)
 
-        tabs.addTab(self.param_tab, "Parameter Table")
+        tabs.addTab(self.prop_editor, "Property Editor")
         tabs.addTab(self.input_tab, "Input Signals")
         tabs.addTab(self.metrics_tab, "Metrics Setup")
         tabs.addTab(self.doe_tab, "DOE Setup")
@@ -114,16 +108,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_fmu(self) -> None:
         """Open & parse an FMU (placeholder)."""
         # TODO: implement open‑file dialog + state update
-        self.log("Load FMU – not implemented yet")
+        self.log("Load FMU - not implemented yet")
 
     def run_study(self) -> None:
         """Kick off the DOE run (placeholder)."""
         # TODO: spawn worker processes, update progress, enable results tab
-        self.log("Run Study – not implemented yet")
+        self.log("Run Study - not implemented yet")
 
     def stop_study(self) -> None:
         """Abort a running study (placeholder)."""
-        self.log("Stop Study – not implemented yet")
+        self.log("Stop Study - not implemented yet")
 
     # ─────────────────────────────────────────────────────────── Helpers ──
 
