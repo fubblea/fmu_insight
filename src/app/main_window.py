@@ -117,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
             info = self.state.load_fmu(Path(file_path), return_info=True)
             assert info is not None, "Could not load FMU"
 
-            self.log("Loaded FMU:")
+            self.update_status("Loaded FMU")
             self.log("-------------------------------------")
             self.log(info)
             self.log("-------------------------------------")
@@ -134,6 +134,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log("Stop Study - not implemented yet")
 
     # ─────────────────────────────────────────────────────────── Helpers ──
+
+    def update_status(self, msg: str):
+        self.statusBar().showMessage(msg, timeout=10000)
 
     def log(self, msg: str) -> None:
         self.log_edit.append(msg)
