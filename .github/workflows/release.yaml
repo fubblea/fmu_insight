@@ -29,6 +29,7 @@ jobs:
         id: meta
         shell: bash
         run: |
+          pip install tomllib
           python - <<'PY'
           import os, re, tomllib, pathlib
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
