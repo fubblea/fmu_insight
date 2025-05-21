@@ -116,8 +116,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if file_path:
             info = self.state.load_fmu(Path(file_path), return_info=True)
             assert info is not None, "Could not load FMU"
+
             self.log("Loaded FMU:")
+            self.log("-------------------------------------")
             self.log(info)
+            self.log("-------------------------------------")
+
+            self.model_explorer.rebuild_tree()
+            self.log("Rebuilt model_explorer tree")
 
     def run_study(self) -> None:
         # TODO: spawn worker processes, update progress, enable results tab
